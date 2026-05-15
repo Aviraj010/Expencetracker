@@ -1,6 +1,6 @@
 # Expense Tracker
 
-A full-stack Expense Tracker web application built using the MERN stack that helps users manage their income and expenses efficiently with a clean dashboard and secure authentication system.
+A full-stack Expense Tracker web application built using the MERN stack that helps users manage their income and expenses efficiently with a clean dashboard and secure authentication system, optimized for all screens.
 
 ---
 
@@ -21,11 +21,13 @@ A full-stack Expense Tracker web application built using the MERN stack that hel
 - Add new expenses
 - Track expense history
 - Categorize and monitor spending
+- Export expenses to PDF/Excel
 
 ### Income Management
 - Add income sources
 - Track earnings
 - View income records
+- Export income data to PDF/Excel
 
 ### Profile Management
 - Update and manage user profile
@@ -83,7 +85,7 @@ ExpTracker/
 ### Clone Repository
 
 ```bash
-git clone https://github.com/basudev07/ExpTracker.git
+git clone https://github.com/Basudev07/ExpTracker.git
 ```
 
 ---
@@ -146,6 +148,7 @@ npm start
 - User Authentication APIs
 - Expense CRUD Operations
 - Income CRUD Operations
+- Export Data APIs
 - User Profile APIs
 
 ---
@@ -166,12 +169,12 @@ npm start
 
 - Charts & Analytics
 - Monthly Reports
-- Export to PDF/Excel
 - Dark Mode
 - Budget Planning
+- Multi-user collaboration
 
 ---
 
 ## Author
 
-Developed by AVIRAJ & BASUDEV 
+Developed by Aviraj Chettri & Basudev Mondal.
