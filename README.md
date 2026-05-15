@@ -83,7 +83,7 @@ ExpTracker/
 ### Clone Repository
 
 ```bash
-git clone https://github.com/your-username/ExpTracker.git
+git clone https://github.com/basudev07/ExpTracker.git
 ```
 
 ---
