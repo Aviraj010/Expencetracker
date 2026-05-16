@@ -1,13 +1,13 @@
 {
-  "name": "project2",
+  "name": "expensetracker",
   "version": "1.0.0",
   "description": "A full-stack Expense Tracker web application built using the MERN stack",
   "type": "module",
-  "scripts": {
-    "start": "node backend/server.js",
-    "build": "cd frontend && npm install && npm run build",
-    "dev": "nodemon backend/server.js"
-  },
+"scripts": {
+  "start": "node backend/server.js",
+  "build": "cd backend && npm install && cd ../frontend && npm install && npm run build",
+  "dev": "nodemon backend/server.js"
+},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Aviraj010/Expencetracker.git"
