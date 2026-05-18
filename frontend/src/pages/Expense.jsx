@@ -1,11 +1,81 @@
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
-import { MdDelete } from 'react-icons/md';
+
+import {
+  MdDelete,
+  MdRestaurant,
+  MdShoppingBag,
+  MdDirectionsCar,
+  MdMovie,
+  MdMedicalServices,
+  MdSchool,
+  MdHome,
+  MdMoreHoriz,
+} from 'react-icons/md';
+
+import { FaFileExcel } from 'react-icons/fa';
 
 export default function Expense() {
   const [expenses, setExpenses] = useState([]);
   const [overview, setOverview] = useState({});
-  const [formData, setFormData] = useState({ title: '', amount: '', category: '', description: '', date: '' });
+  const [loading, setLoading] = useState(false);
+
+  const [selectedCategory, setSelectedCategory] =
+    useState('All');
+
+  const [selectedMonth, setSelectedMonth] =
+    useState('All');
+
+  const [formData, setFormData] = useState({
+    title: '',
+    amount: '',
+    category: '',
+    description: '',
+    date: '',
+  });
+
+  // CUSTOM CATEGORIES
+  const categories = [
+    {
+      name: 'Food',
+      icon: <MdRestaurant size={18} />,
+    },
+
+    {
+      name: 'Shopping',
+      icon: <MdShoppingBag size={18} />,
+    },
+
+    {
+      name: 'Transport',
+      icon: <MdDirectionsCar size={18} />,
+    },
+
+    {
+      name: 'Entertainment',
+      icon: <MdMovie size={18} />,
+    },
+
+    {
+      name: 'Health',
+      icon: <MdMedicalServices size={18} />,
+    },
+
+    {
+      name: 'Education',
+      icon: <MdSchool size={18} />,
+    },
+
+    {
+      name: 'Bills',
+      icon: <MdHome size={18} />,
+    },
+
+    {
+      name: 'Other',
+      icon: <MdMoreHoriz size={18} />,
+    },
+  ];
 
   useEffect(() => {
     fetchExpenses();
@@ -15,126 +85,575 @@ export default function Expense() {
   const fetchExpenses = async () => {
     try {
       const res = await api.get('/expense/get');
-      const data = res.data?.data ? res.data.data : res.data;
+
+      const data = res.data?.data
+        ? res.data.data
+        : res.data;
+
       setExpenses(Array.isArray(data) ? data : []);
-    } catch (error) { console.error(error); }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const fetchOverview = async () => {
     try {
       const res = await api.get('/expense/overview');
-      setOverview(res.data?.data || res.data || {});
-    } catch (error) { console.error(error); }
+
+      setOverview(
+        res.data?.data || res.data || {}
+      );
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
+      setLoading(true);
+
       const payload = {
-        description: formData.title + (formData.description ? ` - ${formData.description}` : ''),
+        description:
+          formData.title +
+          (formData.description
+            ? ` - ${formData.description}`
+            : ''),
+
         amount: Number(formData.amount),
+
         category: formData.category,
-        date: formData.date
+
+        date: formData.date,
       };
+
       await api.post('/expense/add', payload);
-      setFormData({ title: '', amount: '', category: '', description: '', date: '' });
+
+      setFormData({
+        title: '',
+        amount: '',
+        category: '',
+        description: '',
+        date: '',
+      });
+
       fetchExpenses();
       fetchOverview();
-    } catch (error) { alert('Failed to add expense'); }
+
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this expense?")) {
-      try {
-        await api.delete(`/expense/delete/${id}`);
-        fetchExpenses();
-        fetchOverview();
-      } catch (error) { alert('Failed to delete expense'); }
+    try {
+      await api.delete(`/expense/delete/${id}`);
+
+      fetchExpenses();
+      fetchOverview();
+
+    } catch (error) {
+      console.error(error);
     }
   };
 
   const handleDownloadExcel = async () => {
     try {
-      const res = await api.get('/expense/downloadExcel', { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a');
+      const res = await api.get(
+        '/expense/downloadExcel',
+        {
+          responseType: 'blob',
+        }
+      );
+
+      const url = window.URL.createObjectURL(
+        new Blob([res.data])
+      );
+
+      const link =
+        document.createElement('a');
+
       link.href = url;
-      link.setAttribute('download', 'expenses.xlsx');
+
+      link.setAttribute(
+        'download',
+        'expenses.xlsx'
+      );
+
       document.body.appendChild(link);
+
       link.click();
+
       link.parentNode.removeChild(link);
+
     } catch (error) {
       console.error(error);
-      alert('Failed to download excel');
     }
   };
 
-  return (
-    <div>
-      <h1 className="page-title">Expense Management</h1>
+  // FILTERS
+  const filteredExpenses = expenses.filter(
+    (exp) => {
+      const categoryMatch =
+        selectedCategory === 'All' ||
+        exp.category === selectedCategory;
 
-      <div className="grid-2" style={{ marginBottom: '2rem' }}>
-        <div className="brutalist-card stat-card" style={{ background: 'var(--accent)', color: 'white' }}>
-          <div className="stat-title" style={{ color: 'white' }}>Total Expense</div>
-          <div className="stat-value" style={{ color: 'white' }}>₹{overview.totalExpense || 0}</div>
+      const monthMatch =
+        selectedMonth === 'All' ||
+        new Date(exp.date).getMonth() + 1 ===
+          Number(selectedMonth);
+
+      return (
+        categoryMatch && monthMatch
+      );
+    }
+  );
+
+  return (
+    <div className="min-h-screen bg-base-200 p-3 sm:p-6 space-y-6">
+
+      {/* HEADER */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+
+        <div>
+          <h1 className="text-3xl font-bold">
+            Expense Manager
+          </h1>
+
+          <p className="text-base-content/60 mt-1">
+            Track and organize your
+            spending
+          </p>
         </div>
-        <div className="brutalist-card stat-card">
-          <div className="stat-title">Monthly Expense</div>
-          <div className="stat-value">₹{overview.monthlyExpense || 0}</div>
+
+        <button
+          onClick={handleDownloadExcel}
+          className="btn btn-success gap-2"
+        >
+          <FaFileExcel />
+          Download Excel
+        </button>
+      </div>
+
+      {/* MONTHLY EXPENSE CARD */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <div className="card bg-error text-error-content shadow-lg">
+          <div className="card-body">
+
+            <p className="text-sm opacity-80">
+              Monthly Expense
+            </p>
+
+            <h2 className="text-4xl font-bold mt-2">
+              ₹{overview.totalExpense || 0}
+            </h2>
+
+            <p className="text-sm mt-2 opacity-80">
+              Current month spending
+            </p>
+          </div>
+        </div>
+
+        <div className="card bg-base-100 shadow-lg">
+          <div className="card-body">
+
+            <p className="text-sm text-base-content/60">
+              Transactions
+            </p>
+
+            <h2 className="text-4xl font-bold text-primary mt-2">
+              {overview.numberOfTransactions ||
+                0}
+            </h2>
+
+            <p className="text-sm mt-2 text-base-content/60">
+              Total expense records
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="grid-2">
-        <div className="brutalist-card">
-          <h2 style={{ marginBottom: '1.5rem' }}>Add New Expense</h2>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <input type="text" placeholder="Title" className="brutalist-input" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required />
-            <input type="number" placeholder="Amount" className="brutalist-input" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} required />
-            <input type="text" placeholder="Category" className="brutalist-input" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} required />
-            <input type="date" className="brutalist-input" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} required />
-            <textarea placeholder="Description" className="brutalist-input" rows="3" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
-            <button type="submit" className="brutalist-button accent">ADD EXPENSE</button>
-          </form>
+      {/* MAIN GRID */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+        {/* LEFT FORM */}
+        <div className="xl:col-span-1">
+
+          <div className="card bg-base-100 shadow-xl">
+            <div className="card-body">
+
+              <h2 className="card-title mb-5">
+                Add Expense
+              </h2>
+
+              <form
+                onSubmit={handleSubmit}
+                className="space-y-4"
+              >
+
+                {/* TITLE */}
+                <div>
+                  <label className="label">
+                    <span className="label-text">
+                      Expense Title
+                    </span>
+                  </label>
+
+                  <input
+                    type="text"
+                    placeholder="Netflix Subscription"
+                    className="input input-bordered w-full"
+                    value={formData.title}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        title:
+                          e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+
+                {/* AMOUNT */}
+                <div>
+                  <label className="label">
+                    <span className="label-text">
+                      Amount
+                    </span>
+                  </label>
+
+                  <input
+                    type="number"
+                    placeholder="2500"
+                    className="input input-bordered w-full"
+                    value={formData.amount}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        amount:
+                          e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+
+                {/* DATE */}
+                <div>
+                  <label className="label">
+                    <span className="label-text">
+                      Date
+                    </span>
+                  </label>
+
+                  <input
+                    type="date"
+                    className="input input-bordered w-full"
+                    value={formData.date}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        date:
+                          e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+
+                {/* CATEGORY */}
+                <div>
+                  <label className="label">
+                    <span className="label-text">
+                      Select Category
+                    </span>
+                  </label>
+
+                  <div className="grid grid-cols-2 gap-3">
+
+                    {categories.map(
+                      (category) => (
+                        <button
+                          type="button"
+                          key={category.name}
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              category:
+                                category.name,
+                            })
+                          }
+                          className={`border rounded-xl p-3 flex items-center gap-2 transition-all text-sm font-medium
+
+                          ${
+                            formData.category ===
+                            category.name
+                              ? 'bg-primary text-primary-content border-primary'
+                              : 'bg-base-100 hover:border-primary'
+                          }
+                          `}
+                        >
+                          {category.icon}
+
+                          {category.name}
+                        </button>
+                      )
+                    )}
+                  </div>
+                </div>
+
+                {/* DESCRIPTION */}
+                <div>
+                  <label className="label">
+                    <span className="label-text">
+                      Description
+                    </span>
+                  </label>
+
+                  <textarea
+                    rows="4"
+                    placeholder="Optional notes..."
+                    className="textarea textarea-bordered w-full"
+                    value={
+                      formData.description
+                    }
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        description:
+                          e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                {/* BUTTON */}
+                <button
+                  type="submit"
+                  className={`btn btn-primary w-full ${
+                    loading
+                      ? 'btn-disabled'
+                      : ''
+                  }`}
+                >
+                  {loading ? (
+                    <>
+                      <span className="loading loading-spinner loading-sm"></span>
+                      Adding...
+                    </>
+                  ) : (
+                    'Add Expense'
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
         </div>
 
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <h2>Expense History</h2>
-            <button onClick={handleDownloadExcel} className="brutalist-button" style={{ padding: '0.5rem 1rem', fontSize: '1rem', background: 'var(--accent)', color: 'white' }}>
-              Download Excel
-            </button>
-          </div>
-          <div className="brutalist-table-container">
-            <table className="brutalist-table">
-              <thead>
-                <tr>
-                  <th>S.No</th>
-                  <th>Title</th>
-                  <th>Amount</th>
-                  <th>Date</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(expenses || []).map((exp, index) => (
-                  <tr key={exp._id}>
-                    <td>{index + 1}</td>
-                    <td>{exp.title || exp.description}</td>
-                    <td style={{ fontWeight: 'bold', color: 'var(--accent)' }}>-₹{exp.amount}</td>
-                    <td>{new Date(exp.date).toLocaleDateString()}</td>
-                    <td>
-                      <button 
-                        onClick={() => handleDelete(exp._id)} 
-                        className="brutalist-button accent" 
-                        style={{ padding: '0.4rem 0.6rem', fontSize: '1.2rem', background: '#333' }}
-                      >
-                        <MdDelete />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* RIGHT TABLE */}
+        <div className="xl:col-span-2">
+
+          <div className="card bg-base-100 shadow-xl">
+            <div className="card-body">
+
+              {/* TOP */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+
+                <div>
+                  <h2 className="text-2xl font-bold">
+                    Expense History
+                  </h2>
+
+                  <p className="text-sm text-base-content/60 mt-1">
+                    Recent expense activity
+                  </p>
+                </div>
+
+                <div className="badge badge-primary">
+                  {
+                    filteredExpenses.length
+                  }{' '}
+                  Expenses
+                </div>
+              </div>
+
+              {/* FILTERS */}
+              <div className="flex flex-col sm:flex-row gap-3 mb-5">
+
+                {/* CATEGORY */}
+                <select
+                  className="select select-bordered"
+                  value={selectedCategory}
+                  onChange={(e) =>
+                    setSelectedCategory(
+                      e.target.value
+                    )
+                  }
+                >
+                  <option value="All">
+                    All Categories
+                  </option>
+
+                  {categories.map((cat) => (
+                    <option
+                      key={cat.name}
+                      value={cat.name}
+                    >
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+
+                {/* MONTH */}
+                <select
+                  className="select select-bordered"
+                  value={selectedMonth}
+                  onChange={(e) =>
+                    setSelectedMonth(
+                      e.target.value
+                    )
+                  }
+                >
+                  <option value="All">
+                    All Months
+                  </option>
+
+                  <option value="1">
+                    January
+                  </option>
+
+                  <option value="2">
+                    February
+                  </option>
+
+                  <option value="3">
+                    March
+                  </option>
+
+                  <option value="4">
+                    April
+                  </option>
+
+                  <option value="5">
+                    May
+                  </option>
+
+                  <option value="6">
+                    June
+                  </option>
+
+                  <option value="7">
+                    July
+                  </option>
+
+                  <option value="8">
+                    August
+                  </option>
+
+                  <option value="9">
+                    September
+                  </option>
+
+                  <option value="10">
+                    October
+                  </option>
+
+                  <option value="11">
+                    November
+                  </option>
+
+                  <option value="12">
+                    December
+                  </option>
+                </select>
+              </div>
+
+              {/* TABLE */}
+              {filteredExpenses.length >
+              0 ? (
+                <div className="overflow-x-auto">
+
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {filteredExpenses.map(
+                        (exp, index) => (
+                          <tr key={exp._id}>
+                            <td>
+                              {index + 1}
+                            </td>
+
+                            <td className="font-medium">
+                              {exp.description}
+                            </td>
+
+                            <td>
+                              <div className="badge badge-outline">
+                                {exp.category}
+                              </div>
+                            </td>
+
+                            <td className="font-bold text-error">
+                              -₹{exp.amount}
+                            </td>
+
+                            <td>
+                              {new Date(
+                                exp.date
+                              ).toLocaleDateString()}
+                            </td>
+
+                            <td>
+                              <button
+                                onClick={() =>
+                                  handleDelete(
+                                    exp._id
+                                  )
+                                }
+                                className="btn btn-sm btn-error btn-outline"
+                              >
+                                <MdDelete />
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="py-14 text-center">
+
+                  <div className="text-5xl mb-3">
+                    💸
+                  </div>
+
+                  <h3 className="text-xl font-semibold">
+                    No Expenses Found
+                  </h3>
+
+                  <p className="text-base-content/60 mt-2">
+                    Try changing filters or add
+                    expenses
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

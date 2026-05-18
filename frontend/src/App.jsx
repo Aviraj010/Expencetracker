@@ -6,19 +6,22 @@ import Income from './pages/Income';
 import Expense from './pages/Expense';
 import Profile from './pages/Profile';
 import ChangePassword from './pages/ChangePassword';
+import ToastProvider from './components/ToastProvider';
 
 function Layout({ children }) {
   const isAuthenticated = !!localStorage.getItem('token');
-  
+
   if (!isAuthenticated) {
     return <Navigate to="/auth" />;
   }
 
   return (
-    <div className="app-container">
+    <div className="flex min-h-screen bg-base-100">
       <Sidebar />
-      <main className="main-content">
-        {children}
+      <main className="flex-1 overflow-y-auto lg:ml-0">
+        <div className="p-4 lg:p-8 max-w-7xl mx-auto">
+          {children}
+        </div>
       </main>
     </div>
   );
@@ -26,16 +29,18 @@ function Layout({ children }) {
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/" element={<Layout><Dashboard /></Layout>} />
-        <Route path="/income" element={<Layout><Income /></Layout>} />
-        <Route path="/expense" element={<Layout><Expense /></Layout>} />
-        <Route path="/profile" element={<Layout><Profile /></Layout>} />
-        <Route path="/change-password" element={<Layout><ChangePassword /></Layout>} />
-      </Routes>
-    </Router>
+    <ToastProvider>
+      <Router>
+        <Routes>
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/" element={<Layout><Dashboard /></Layout>} />
+          <Route path="/income" element={<Layout><Income /></Layout>} />
+          <Route path="/expense" element={<Layout><Expense /></Layout>} />
+          <Route path="/profile" element={<Layout><Profile /></Layout>} />
+          <Route path="/change-password" element={<Layout><ChangePassword /></Layout>} />
+        </Routes>
+      </Router>
+    </ToastProvider>
   );
 }
 
