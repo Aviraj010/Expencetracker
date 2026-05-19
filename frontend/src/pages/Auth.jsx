@@ -1,304 +1,269 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
+import {
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  ShieldCheck,
+  TrendingUp,
+  User,
+  WalletCards,
+} from 'lucide-react';
 import api from '../utils/api';
 import iconImg from '../assets/icon.png';
-import { toast } from 'react-hot-toast';
-import { FiEye, FiEyeOff, FiMail, FiLock, FiUser } from 'react-icons/fi';
+
+const emptyForm = { name: '', email: '', password: '' };
+
+const getErrorMessage = (error) =>
+  error?.response?.data?.message || error?.message || 'Authentication failed';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
-
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-  });
-
+  const [formData, setFormData] = useState(emptyForm);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-    // Clear error for this field when user starts typing
-    if (errors[name]) {
-      setErrors({ ...errors, [name]: '' });
-    }
+    setFormData((current) => ({ ...current, [name]: value }));
+    setErrors((current) => ({ ...current, [name]: '' }));
   };
 
   const resetForm = () => {
-    setFormData({
-      name: '',
-      email: '',
-      password: '',
-    });
+    setFormData(emptyForm);
     setErrors({});
     setShowPassword(false);
   };
 
   const validateForm = () => {
-    const newErrors = {};
+    const nextErrors = {};
 
-    if (!isLogin && !formData.name.trim()) {
-      newErrors.name = 'Name is required';
+    if (!isLogin && !formData.name.trim()) nextErrors.name = 'Name is required';
+    if (!formData.email.trim()) nextErrors.email = 'Email is required';
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      nextErrors.email = 'Enter a valid email';
+    }
+    if (!formData.password) nextErrors.password = 'Password is required';
+    else if (formData.password.length < 8) {
+      nextErrors.password = 'Minimum 8 characters';
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Frontend Validation
-    if (!validateForm()) {
-      return;
-    }
-
-    setIsLoading(true);
+    if (!validateForm()) return;
 
     try {
+      setIsLoading(true);
       const endpoint = isLogin ? '/user/login' : '/user/register';
+      const payload = isLogin
+        ? { email: formData.email, password: formData.password }
+        : formData;
+      const { data } = await api.post(endpoint, payload);
 
-      const { data } = await api.post(endpoint, formData);
-
-      // Only login if token exists
-      if (data?.token) {
-        localStorage.setItem('token', data.token);
-        toast.success(
-          isLogin ? 'Welcome back!' : 'Account created successfully!',
-          {
-            duration: 3000,
-            position: 'top-right',
-          }
-        );
-        setTimeout(() => navigate('/'), 500);
-      } else {
-        toast.error(data?.message || 'Authentication Failed', {
-          duration: 4000,
-          position: 'top-right',
-        });
+      if (!data?.token) {
+        throw new Error(data?.message || 'Authentication failed');
       }
-    } catch (err) {
-      console.log(err);
 
-      const message =
-        err.response?.data?.message || err.message || 'Authentication Failed';
-
-      toast.error(message, {
-        duration: 4000,
-        position: 'top-right',
-      });
+      localStorage.setItem('token', data.token);
+      toast.success(isLogin ? 'Welcome back.' : 'Account created.');
+      navigate('/', { replace: true });
+    } catch (error) {
+      toast.error(getErrorMessage(error));
     } finally {
       setIsLoading(false);
     }
   };
 
-  const toggleAuthMode = (loginMode) => {
+  const switchMode = (loginMode) => {
     setIsLogin(loginMode);
     resetForm();
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-base-200 via-base-100 to-base-200 p-4">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/5 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/5 rounded-full blur-3xl animate-pulse delay-700"></div>
-      </div>
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-base-200 p-4">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,hsl(var(--p)/0.12),transparent_34%),radial-gradient(circle_at_bottom_right,hsl(var(--s)/0.10),transparent_30%)]" />
 
-      {/* Auth Card */}
-      <div className="card w-full max-w-md bg-base-100 shadow-2xl relative z-10 transition-all duration-300 hover:shadow-3xl">
-        <div className="card-body p-8">
-          {/* Logo & Title */}
-          <div className="flex flex-col items-center mb-6 animate-fade-in">
-            <div className="avatar mb-4">
-              <div className="w-16 h-16 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
-                <img src={iconImg} alt="Expense Tracker Logo" />
+      <section className="relative z-10 grid w-full max-w-5xl overflow-hidden rounded-3xl border border-base-300 bg-base-100/90 shadow-2xl backdrop-blur-xl lg:grid-cols-[1fr_28rem]">
+        <div className="hidden border-r border-base-300 bg-base-200/50 p-10 lg:flex lg:flex-col lg:justify-between">
+          <div>
+            <div className="mb-8 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-base-300 bg-base-100 shadow-sm">
+                <img src={iconImg} alt="Expense Tracker" className="h-8 w-8" />
+              </div>
+              <div>
+                <h1 className="text-xl font-black">Expense Tracker</h1>
+                <p className="text-sm text-base-content/60">Finance workspace</p>
               </div>
             </div>
-            <h2 className="text-3xl font-bold text-center bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Expense Tracker
+
+            <h2 className="max-w-md text-4xl font-black leading-tight">
+              Manage income and expenses with clarity.
             </h2>
-            <p className="text-sm text-base-content/60 mt-2">
-              {isLogin ? 'Welcome back!' : 'Create your account'}
+            <p className="mt-4 max-w-sm text-base-content/60">
+              A focused dashboard for tracking money, categories, and monthly activity.
             </p>
           </div>
 
-          {/* Toggle Tabs */}
-          <div className="tabs tabs-boxed bg-base-200 p-1 mb-6">
+          <div className="grid gap-3">
+            {[
+              ['Track cashflow', TrendingUp],
+              ['Secure account', ShieldCheck],
+              ['Organized records', WalletCards],
+            ].map(([label, Icon]) => (
+              <div
+                key={label}
+                className="flex items-center gap-3 rounded-2xl border border-base-300 bg-base-100 p-4"
+              >
+                <Icon className="text-primary" size={20} />
+                <span className="font-semibold">{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="p-6 sm:p-8">
+          <div className="mb-8 text-center lg:hidden">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border border-base-300 bg-base-100 shadow-sm">
+              <img src={iconImg} alt="Expense Tracker" className="h-9 w-9" />
+            </div>
+            <h1 className="text-2xl font-black">Expense Tracker</h1>
+          </div>
+
+          <div className="mb-6">
+            <h2 className="text-3xl font-bold">
+              {isLogin ? 'Welcome back' : 'Create account'}
+            </h2>
+            <p className="mt-1 text-sm text-base-content/60">
+              {isLogin ? 'Sign in to continue.' : 'Start tracking your finances.'}
+            </p>
+          </div>
+
+          <div className="tabs tabs-boxed mb-6 bg-base-200 p-1">
             <button
               type="button"
-              className={`tab flex-1 transition-all duration-300 ${
-                isLogin ? 'tab-active' : ''
-              }`}
-              onClick={() => toggleAuthMode(true)}
+              className={`tab flex-1 ${isLogin ? 'tab-active' : ''}`}
+              onClick={() => switchMode(true)}
             >
               Login
             </button>
             <button
               type="button"
-              className={`tab flex-1 transition-all duration-300 ${
-                !isLogin ? 'tab-active' : ''
-              }`}
-              onClick={() => toggleAuthMode(false)}
+              className={`tab flex-1 ${!isLogin ? 'tab-active' : ''}`}
+              onClick={() => switchMode(false)}
             >
               Register
             </button>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Name Field - Only for Register */}
             {!isLogin && (
-              <div className="form-control animate-slide-in">
-                <label className="label">
+              <div>
+                <label className="label" htmlFor="name">
                   <span className="label-text font-medium">Name</span>
                 </label>
-                <label className="input input-bordered flex items-center gap-2 focus-within:input-primary transition-all">
-                  <FiUser className="text-base-content/40" />
+                <label className={`input input-bordered flex items-center gap-2 ${errors.name ? 'input-error' : ''}`}>
+                  <User size={17} className="text-base-content/40" />
                   <input
-                    type="text"
+                    id="name"
                     name="name"
-                    placeholder="Enter your name"
                     className="grow"
+                    placeholder="Your name"
                     value={formData.name}
                     onChange={handleChange}
                     disabled={isLoading}
                   />
                 </label>
-                {errors.name && (
-                  <label className="label">
-                    <span className="label-text-alt text-error">
-                      {errors.name}
-                    </span>
-                  </label>
-                )}
+                {errors.name && <p className="mt-2 text-sm text-error">{errors.name}</p>}
               </div>
             )}
 
-            {/* Email Field */}
-            <div className="form-control ">
-              <label className="label">
+            <div>
+              <label className="label" htmlFor="email">
                 <span className="label-text font-medium">Email</span>
               </label>
-              <label className="input input-bordered flex items-center gap-2 focus-within:input-primary transition-all">
-                <FiMail className="text-base-content/40" />
+              <label className={`input input-bordered flex items-center gap-2 ${errors.email ? 'input-error' : ''}`}>
+                <Mail size={17} className="text-base-content/40" />
                 <input
-                  type="email"
+                  id="email"
                   name="email"
-                  placeholder="Enter your email"
+                  type="email"
                   className="grow"
+                  placeholder="you@example.com"
                   value={formData.email}
                   onChange={handleChange}
                   disabled={isLoading}
                 />
               </label>
-              {errors.email && (
-                <label className="label">
-                  <span className="label-text-alt text-error">
-                    {errors.email}
-                  </span>
-                </label>
-              )}
+              {errors.email && <p className="mt-2 text-sm text-error">{errors.email}</p>}
             </div>
 
-            {/* Password Field */}
-            <div className="form-control ">
-              <label className="label">
+            <div>
+              <label className="label" htmlFor="password">
                 <span className="label-text font-medium">Password</span>
               </label>
-              <label className="input input-bordered flex items-center gap-2 focus-within:input-primary transition-all">
-                <FiLock className="text-base-content/40" />
+              <label className={`input input-bordered flex items-center gap-2 ${errors.password ? 'input-error' : ''}`}>
+                <Lock size={17} className="text-base-content/40" />
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  id="password"
                   name="password"
-                  placeholder="Enter your password"
+                  type={showPassword ? 'text' : 'password'}
                   className="grow"
+                  placeholder="Minimum 8 characters"
                   value={formData.password}
                   onChange={handleChange}
                   disabled={isLoading}
                 />
                 <button
                   type="button"
-                  className="btn btn-ghost btn-sm btn-circle"
-                  onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
+                  className="btn btn-ghost btn-xs btn-circle"
+                  onClick={() => setShowPassword((current) => !current)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? (
-                    <FiEyeOff className="text-base-content/60" />
-                  ) : (
-                    <FiEye className="text-base-content/60" />
-                  )}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </label>
               {errors.password && (
-                <label className="label">
-                  <span className="label-text-alt text-error">
-                    {errors.password}
-                  </span>
-                </label>
-              )}
-              {!isLogin && !errors.password && (
-                <label className="label">
-                  <span className="label-text-alt text-base-content/60">
-                    Must be at least 8 characters
-                  </span>
-                </label>
+                <p className="mt-2 text-sm text-error">{errors.password}</p>
               )}
             </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              className={`btn btn-primary w-full mt-6 ${
-                isLoading ? 'btn-disabled' : ''
-              }`}
-              disabled={isLoading}
-            >
+            <button type="submit" className="btn btn-primary mt-4 w-full gap-2" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <span className="loading loading-spinner loading-sm"></span>
                   Processing...
                 </>
-              ) : isLogin ? (
-                'Login'
               ) : (
-                'Create Account'
+                <>
+                  {isLogin ? 'Login' : 'Create Account'}
+                  <ArrowRight size={17} />
+                </>
               )}
             </button>
           </form>
 
-          {/* Footer Text */}
           <div className="divider text-xs text-base-content/40">
-            {isLogin ? "Don't have an account?" : 'Already have an account?'}
+            {isLogin ? 'New here?' : 'Already registered?'}
           </div>
           <button
             type="button"
             className="btn btn-ghost btn-sm w-full"
-            onClick={() => toggleAuthMode(!isLogin)}
+            onClick={() => switchMode(!isLogin)}
+            disabled={isLoading}
           >
-            {isLogin ? 'Create one now' : 'Login instead'}
+            {isLogin ? 'Create an account' : 'Login instead'}
           </button>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

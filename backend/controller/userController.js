@@ -3,6 +3,8 @@ import validator from "validator";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import "dotenv/config";
+import incomeModel from "../models/incomeModel.js";
+import expenseModel from "../models/expenseModel.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const TOKEN_EXPIRES = "24h";
@@ -260,6 +262,40 @@ export async function updatePassword(req, res) {
 
     } catch (err) {
         console.error(err);
+        return res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
+}
+export async function deleteUser(req, res) {
+    try {
+        const userId = req.user._id;
+
+        // delete all incomes of user
+        await incomeModel.deleteMany({ userId });
+
+        // delete all expenses of user
+        await expenseModel.deleteMany({ userId });
+
+        // delete user
+        const user = await userModel.findByIdAndDelete(userId);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "User and all related data deleted successfully"
+        });
+
+    } catch (err) {
+        console.error(err);
+
         return res.status(500).json({
             success: false,
             message: "Server error"
